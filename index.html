@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2f5d50">
+<title>내 독서노트</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <h1 id="title">내 서재</h1>
+  <button id="btn-back" class="icon-btn" hidden aria-label="뒤로">‹</button>
+</header>
+
+<main id="view"></main>
+
+<nav class="tabs">
+  <button data-tab="library" class="on">📚<span>서재</span></button>
+  <button data-tab="add">🔍<span>책 추가</span></button>
+  <button data-tab="quotes">✒️<span>구절</span></button>
+</nav>
+
+<div id="sheet" class="sheet" hidden>
+  <div class="sheet-body" id="sheet-body"></div>
+</div>
+<div id="toast" class="toast" hidden></div>
+
+<input type="file" id="photo" accept="image/*" capture="environment" hidden>
+
+<script src="app.js"></script>
+</body>
+</html>
