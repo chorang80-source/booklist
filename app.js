@@ -100,10 +100,34 @@ function importData() {
 }
 
 /* ---------- 책 검색 (Google Books → 실패 시 Open Library) ---------- */
+const PROXY = (window.BOOK_PROXY || '').replace(/\/$/, '');
+const isIsbn = s => /^\d{10}(\d{3})?$/.test(s.replace(/[-\s]/g, ''));
+
+// 카카오 도서(중계 서버 경유): 한국 책에 가장 정확 (쪽수는 제공되지 않음)
+async function searchKakao(q) {
+  if (!PROXY) return [];
+  const url = isIsbn(q) ? `${PROXY}/lookup?isbn=${q.replace(/\D/g, '')}` : `${PROXY}/search?q=${encodeURIComponent(q)}`;
+  const r = await fetch(url); if (!r.ok) throw new Error(r.status);
+  const j = await r.json();
+  return Array.isArray(j) ? j : (j ? [j] : []);
+}
 async function searchBooks(q) {
+  const [a, g] = await Promise.allSettled([searchKakao(q), searchGoogleOrOL(q)]);
+  const out = [], seen = new Map();
+  for (const r of [...(a.value || []), ...(g.value || [])]) {
+    const k = r.isbn || r.title + r.authors;
+    if (seen.has(k)) { // 같은 책이면 빠진 정보(쪽수·표지)를 다른 출처에서 보충
+      const o = seen.get(k); o.pages ||= r.pages; o.cover ||= r.cover; continue;
+    }
+    seen.set(k, r); out.push(r);
+  }
+  if (!out.length && a.status === 'rejected' && g.status === 'rejected') throw new Error('search');
+  return out;
+}
+async function searchGoogleOrOL(q) {
   q = q.trim();
   const isbn = q.replace(/[-\s]/g, '');
-  const query = /^\d{10}(\d{3})?$/.test(isbn) ? 'isbn:' + isbn : q;
+  const query = isIsbn(q) ? 'isbn:' + isbn : q;
   try {
     const r = await fetch('https://www.googleapis.com/books/v1/volumes?maxResults=20&printType=books&q=' + encodeURIComponent(query));
     if (!r.ok) throw new Error(r.status);
@@ -144,7 +168,8 @@ function renderAdd(v) {
   v.innerHTML = `
     <input type="search" id="q" placeholder="제목, 저자 또는 ISBN" autocomplete="off" enterkeyhint="search">
     ${('BarcodeDetector' in window) ? '<button class="btn block" id="scan" style="margin-top:10px">📷 바코드로 한 번에 추가</button>' : ''}
-    <div id="res" style="margin-top:14px"><div class="empty"><b>🔍</b>입력하면 자동으로 검색돼요.<br>표지·저자·쪽수는 자동으로 채워집니다.</div></div>`;
+    <div id="res" style="margin-top:14px"><div class="empty"><b>🔍</b>입력하면 자동으로 검색돼요.<br>표지·저자·쪽수는 자동으로 채워집니다.</div></div>
+    ${PROXY ? '<div class="status" style="text-align:center">도서 정보 제공: 카카오 · Google Books · Open Library</div>' : ''}`;
   const q = $('#q'); let t, seq = 0;
   q.oninput = () => {
     clearTimeout(t);
