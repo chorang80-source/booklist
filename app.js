@@ -107,7 +107,7 @@ const isIsbn = s => /^\d{10}(\d{3})?$/.test(s.replace(/[-\s]/g, ''));
 async function searchKakao(q) {
   if (!PROXY) return [];
   const url = isIsbn(q) ? `${PROXY}/lookup?isbn=${q.replace(/\D/g, '')}` : `${PROXY}/search?q=${encodeURIComponent(q)}`;
-  const r = await fetch(url); if (!r.ok) throw new Error(r.status);
+  const r = await fetch(url, { signal: AbortSignal.timeout(4000) }); if (!r.ok) throw new Error(r.status); // 중계가 막혀도 검색이 지연되지 않도록
   const j = await r.json();
   return Array.isArray(j) ? j : (j ? [j] : []);
 }
@@ -169,7 +169,7 @@ function renderAdd(v) {
     <input type="search" id="q" placeholder="제목, 저자 또는 ISBN" autocomplete="off" enterkeyhint="search">
     ${('BarcodeDetector' in window) ? '<button class="btn block" id="scan" style="margin-top:10px">📷 바코드로 한 번에 추가</button>' : ''}
     <div id="res" style="margin-top:14px"><div class="empty"><b>🔍</b>입력하면 자동으로 검색돼요.<br>표지·저자·쪽수는 자동으로 채워집니다.</div></div>
-    ${PROXY ? '<div class="status" style="text-align:center">도서 정보 제공: 카카오 · Google Books · Open Library</div>' : ''}`;
+    ${PROXY ? '<div class="status" style="text-align:center">도서 정보 제공: 카카오 · 네이버 · Google Books · Open Library</div>' : ''}`;
   const q = $('#q'); let t, seq = 0;
   q.oninput = () => {
     clearTimeout(t);
